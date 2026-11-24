@@ -361,9 +361,9 @@ try {
           });
         }, { layout, controls });
         check(layout + '/' + controls + ' uses spacing between visible children at ' + width,
-          spacing.length === 3 && spacing.every(s => s.children === (controls === 'both' ? 2 : 1) && Math.abs(s.extraWidth - s.gap) < .5), spacing);
+          spacing.length === 2 && spacing.every(s => s.children === (controls === 'both' ? 2 : 1) && Math.abs(s.extraWidth - s.gap) < .5), spacing);
         const focused = [];
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
           if (i) await nav(layout === 'dock' ? 'right' : 'down');
           focused.push(await current.evaluate(() => {
             const button = document.querySelector('#utils .u.is-focus'), lens = document.querySelector('.ut-lens.is-current');
@@ -402,7 +402,7 @@ try {
         const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
         return elements.map(e => (e.querySelector('.ico').getBoundingClientRect().left - e.querySelector('.settings-group-copy').getBoundingClientRect().right) / scale);
       });
-      check('Settings group arrows stay separate from their copy at ' + width, groups.length === 6 && groups.every(gap => gap >= 31.5), groups);
+      check('Settings group arrows stay separate from their copy at ' + width, groups.length === 7 && groups.every(gap => gap >= 31.5), groups);
       await wallpaper();
       const caption = await current.locator('.wallpaper-preview-name').evaluate(e => {
         const scale = document.getElementById('stage').getBoundingClientRect().width / 1920;
@@ -465,14 +465,11 @@ try {
     await scene('home'); await act('home.app.netflix'); await current.waitForFunction(() => __tv.calls.length === 2);
     check('Primary app keeps verified target', (await current.evaluate(() => __tv.calls.at(-1))).id === IDS[1]);
     await current.evaluate(() => window.dispatchEvent(new Event('focus')));
-    await act('util.art'); await current.waitForFunction(() => __tv.calls.length === 3);
-    const art = await current.evaluate(() => __tv.calls.at(-1));
-    check('Art Mode uses app-control with fullscreen request', art.method === 'launchAppControl' && art.id === 'org.tizen.art-app' && art.control.data.some(d => d.key === 'mode' && d.value[0] === 'fullscreen'), art);
-    await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('samsung'); await act('samsung.home');
-    await current.waitForFunction(() => __tv.calls.length === 4);
+    await group('samsung'); await act('samsung.home');
+    await current.waitForFunction(() => __tv.calls.length === 3);
     check('Samsung escape keeps CSFS target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.csfs');
     await current.evaluate(() => window.dispatchEvent(new Event('focus'))); await group('samsung'); await act('samsung.settings');
-    await current.waitForFunction(() => __tv.calls.length === 5);
+    await current.waitForFunction(() => __tv.calls.length === 4);
     check('TV settings keeps installed target', (await current.evaluate(() => __tv.calls.at(-1))).id === 'com.samsung.tv.coba.setting');
     await current.evaluate(() => { window.dispatchEvent(new Event('focus')); __tv.launchFailure = true; });
     await scene('home'); await act('home.app.netflix'); await current.waitForFunction(() => ShoreQA.where().view === 'message');
@@ -1037,6 +1034,124 @@ try {
     check('Broken thumbnail keeps its named 16:9 slot without a broken image glyph', fallback.name.includes(target.name) && fallback.slotVisible && fallback.inside && Math.abs(fallback.ratio - 16 / 9) < 0.05 && fallback.imageHidden, fallback);
     await nav('ok'); await ready();
     check('A missing thumbnail does not prevent applying its full photo', (await state()).committed.wall === target.id && Object.values(await wallpaperBundle()).every(src => src.includes('/' + target.id)));
+  });
+  await run('Home controls without Art Mode', async () => {
+    await page({ seed: baseline({ theme: 'shore', dock: ['youtube', 'netflix', 'stremio'], lastApp: 'netflix', wallpaper: walls[2].id, mode: '15' }) });
+    const before = await state(), savedBefore = await current.evaluate(key => localStorage.getItem(key), KEY);
+    check('Home shows only All apps and Settings', same(before.controls, ['apps', 'settings']) && !(await current.locator('[data-action="util.art"]').count()), before.controls);
+    check('Saved order, wallpaper, rotation and appearance load unchanged', same(before.dock, ['youtube', 'netflix', 'stremio']) && before.wallpaper === walls[2].id && before.mode === '15' && before.look.layout === 'dock' && before.look.bg === 'photo', before);
+    const dockPath = [];
+    for (const key of ['up', 'right', 'right', 'left', 'down']) { await nav(key); dockPath.push([(await state()).focusAction, (await call('where')).focusCount]); }
+    check('Dock Up starts at All apps, moves without wrapping and Down returns', same(dockPath.map(p => p[0]), ['util.apps', 'util.settings', 'util.settings', 'util.apps', 'home.app.netflix']) && dockPath.every(p => p[1] === 1), dockPath);
+    await nav('up', 'right', 'ok');
+    check('OK on Settings opens Settings', (await call('where')).view === 'settings');
+    await nav('back');
+    check('Back returns to Home with the control remembered', (await call('where')).view === 'home' && (await state()).focusAction === 'util.settings');
+    await nav('down'); await nav('up');
+    check('Re-entering controls restores the last control', (await state()).focusAction === 'util.settings');
+    await nav('down', 'up', 'left', 'ok'); await current.waitForFunction(() => ShoreQA.where().view === 'apps');
+    check('OK on All apps opens the installed catalogue', (await call('where')).view === 'apps');
+    await nav('back'); await nav('down');
+    check('Navigation alone does not write preferences', (await current.evaluate(key => localStorage.getItem(key), KEY)) === savedBefore);
+    await look({ layout: 'list' });
+    const listPath = [];
+    for (const key of ['right', 'down', 'down', 'up', 'left']) { await nav(key); listPath.push([(await state()).focusAction, (await call('where')).focusCount]); }
+    check('List Right enters controls, Up/Down stays within two and Left returns', same(listPath.map(p => p[0]), ['util.apps', 'util.settings', 'util.settings', 'util.apps', 'home.app.netflix']) && listPath.every(p => p[1] === 1), listPath);
+    for (const [layout, width, height] of [['dock', 1920, 1080], ['list', 1920, 1080], ['dock', 1280, 720], ['list', 1280, 720]]) {
+      await current.setViewportSize({ width, height });
+      for (const controls of ['text', 'icons', 'both']) {
+        await look({ layout, controls });
+        await nav(layout === 'list' ? 'right' : 'up');
+        const g = await current.evaluate(() => {
+          const stage = document.getElementById('stage').getBoundingClientRect(), clock = document.querySelector('#caption .clock').getBoundingClientRect();
+          const items = [...document.querySelectorAll('#utils .u')].map(e => e.getBoundingClientRect());
+          const lens = document.querySelector('.ut-lens.is-current'), lr = lens && lens.getBoundingClientRect(), focus = document.querySelector('#utils .u.is-focus').getBoundingClientRect();
+          const overlap = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+          return { count: items.length, inside: items.every(r => r.left >= stage.left - 1 && r.right <= stage.right + 1 && r.top >= stage.top - 1 && r.bottom <= stage.bottom + 1),
+            apart: !overlap(items[0], items[1]) && !items.some(r => overlap(r, clock)), lensOn: !lens || (lr.left <= focus.left + 2 && lr.right >= focus.right - 2 && Math.abs((lr.top + lr.bottom) / 2 - (focus.top + focus.bottom) / 2) < 3) };
+        });
+        check('Two controls fit and align ' + layout + '/' + controls + '/' + width, g.count === 2 && g.inside && g.apart && g.lensOn, g);
+        await nav(layout === 'list' ? 'left' : 'down');
+      }
+      if (width === 1920) await current.screenshot({ path: out + 'no-art-' + layout + '-1080.png' });
+    }
+    await current.setViewportSize({ width: 1920, height: 1080 });
+    await current.reload(); await ready();
+    const after = await state();
+    check('Preferences survive reload with two controls', same(after.controls, ['apps', 'settings']) && after.look.layout === 'list' && same(after.dock, before.dock) && after.wallpaper === before.wallpaper && after.mode === '15' && after.lastApp === 'netflix', after);
+    check('No Art app-control was sent', !(await current.evaluate(() => __tv.calls.some(c => c.id === 'org.tizen.art-app'))));
+  });
+  await run('HDMI devices on Home', async () => {
+    await page({ seed: baseline({ dock: ['youtube', 'netflix'], lastApp: 'youtube' }) });
+    check('No HDMI devices are configured by default', same(Object.keys((await state()).inputs || {}), []) && !(await state()).dock.some(id => /^hdmi/.test(id)));
+    await group('hdmi');
+    const ports = await current.locator('[data-action^="hdmi.port."]').evaluateAll(els => els.map(e => [e.getAttribute('data-action'), e.textContent.replace(/\s+/g, ' ').trim()]));
+    check('HDMI devices lists four ports, none shown', ports.length === 4 && ports.every(p => p[1].includes('Not shown')), ports);
+    await act('hdmi.port.1'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'hdmiport');
+    const options = (await radios()).map(r => r.action);
+    check('Port chooser offers None, Xbox, PlayStation, Nintendo, Amp, PC, Media box and Other', same(options, ['none', 'xbox', 'playstation', 'nintendo', 'amp', 'pc', 'mediabox', 'hdmi'].map(id => 'hdmi.set.' + id)), options);
+    check('Current choice is focused and checked', (await focusedChoice())?.action === 'hdmi.set.none' && (await focusedChoice())?.checked === 'true');
+    await nav('down', 'ok');
+    let s = await state(), saved = await stored();
+    check('Remote OK assigns Xbox to HDMI 1 and adds it to Home', s.inputs['1'] === 'xbox' && same(saved.dock, ['youtube', 'netflix', 'hdmi1']) && saved.inputs['1'] === 'xbox', { inputs: s.inputs, dock: saved.dock });
+    check('Checkmark moves to Xbox with a confirmation', (await radios()).find(r => r.checked === 'true')?.action === 'hdmi.set.xbox' && /Xbox is on Home, position 3/.test(await current.locator('#appearance').innerText()));
+    check('Input records are not saved as app records', !saved.appRecords.some(r => /^hdmi/.test(r.id)));
+    await nav('back');
+    check('Port list shows the assigned device', /Xbox · on Home/.test(await current.locator('[data-action="hdmi.port.1"]').innerText()));
+    await nav('back'); await scene('home');
+    const tile = await current.locator('[data-action="home.app.hdmi1"]').evaluate(e => ({ text: e.textContent.trim(), mark: e.querySelector('[data-mark]')?.getAttribute('data-mark') }));
+    check('Home tile uses the Xbox name and monochrome mark', tile.text.includes('Xbox') && tile.mark === 'xbox', tile);
+    await act('home.app.hdmi1'); await current.waitForFunction(() => __tv.calls.some(c => c.id === 'org.tizen.tv-viewer'));
+    const calls = await current.evaluate(() => __tv.calls.map(c => ({ method: c.method, number: c.number, id: c.id })));
+    check('OK switches to HDMI 1 and opens the TV viewer', calls.some(c => c.method === 'setSource' && c.number === 1) && calls.some(c => c.id === 'org.tizen.tv-viewer'), calls);
+    check('The input becomes the last selected Home item', (await stored()).lastApp === 'hdmi1');
+    await current.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await current.reload(); await ready();
+    s = await state();
+    check('HDMI device and order survive reload', s.inputs['1'] === 'xbox' && same(s.dock, ['youtube', 'netflix', 'hdmi1']) && s.selected === 'hdmi1', s);
+    await group('hdmi'); await act('hdmi.port.1'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'hdmiport');
+    await act('hdmi.set.playstation');
+    check('Changing the device keeps its Home position', (await state()).inputs['1'] === 'playstation' && same((await stored()).dock, ['youtube', 'netflix', 'hdmi1']));
+    await act('hdmi.set.hdmi');
+    await nav('back', 'back'); await scene('home');
+    check('Other device uses the port name and HDMI mark', await current.locator('[data-action="home.app.hdmi1"]').evaluate(e => e.textContent.includes('HDMI 1') && e.querySelector('[data-mark]')?.getAttribute('data-mark') === 'hdmi'));
+    for (const [layout, controls] of [['list', 'both'], ['dock', 'icons']]) {
+      await look({ layout, apps: controls });
+      const shown = await current.locator('[data-action="home.app.hdmi1"]').evaluateAll(els => els.filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map(e => ({ text: e.textContent.trim(), mark: e.querySelector('[data-mark]')?.getAttribute('data-mark') || null })));
+      check('HDMI tile renders in ' + layout + '/' + controls, shown.length === 1 && (controls === 'icons' ? shown[0].mark === 'hdmi' : shown[0].text.includes('HDMI 1')), shown);
+    }
+    await look({ layout: 'dock', apps: 'both' });
+    await current.screenshot({ path: out + 'hdmi-dock-1080.png' });
+    await closePage();
+    await page();
+    await group('hdmi'); await act('hdmi.port.2'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'hdmiport');
+    await act('hdmi.set.amp');
+    check('A full Home keeps nine apps and explains where to add the device', (await state()).inputs['2'] === 'amp' && (await state()).dock.length === 9 && !(await state()).dock.includes('hdmi2') && /Home holds nine apps/.test(await current.locator('#appearance').innerText()));
+    const geometry = await current.evaluate(() => {
+      const rows = [...document.querySelectorAll('#appearance [data-action^="hdmi.set."]')].map(e => e.getBoundingClientRect()), stage = document.getElementById('stage').getBoundingClientRect();
+      const reason = document.querySelector('#appearance .setting-reason')?.getBoundingClientRect(), hint = document.querySelector('#appearance .appearance-desc').getBoundingClientRect();
+      return { count: rows.length, bottom: Math.max(...rows.map(r => r.bottom), reason ? reason.bottom : 0), hintTop: hint.top, stageBottom: stage.bottom };
+    });
+    check('Port chooser and its note fit above the remote hint', geometry.count === 8 && geometry.bottom <= geometry.hintTop - 8, geometry);
+    for (const width of [1920, 1280]) {
+      await current.setViewportSize({ width, height: width * 9 / 16 });
+      await scene('settings');
+      const overview = await current.evaluate(() => {
+        const rows = [...document.querySelectorAll('.settings-group')].map(e => e.getBoundingClientRect()), hint = document.querySelector('.settings-overview-hint').getBoundingClientRect();
+        return { count: rows.length, last: rows[rows.length - 1].bottom, hint: hint.top };
+      });
+      check('Seven Settings groups end above the remote hint at ' + width, overview.count === 7 && overview.last <= overview.hint - 4, overview);
+    }
+    await current.setViewportSize({ width: 1920, height: 1080 });
+    await group('hdmi'); await act('hdmi.port.2'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'hdmiport');
+    await nav('back', 'back'); await editor();
+    check('Assigned device is offered first in Apps on Home', await current.locator('[data-action="editor.add.hdmi2"]').count() === 1);
+    await remove('stremio'); await act('editor.add.hdmi2');
+    check('Editor adds the HDMI device like an app', (await stored()).dock.includes('hdmi2') && (await stored()).dock.length === 9);
+    await nav('back'); await nav('back');
+    await group('hdmi'); await act('hdmi.port.2'); await current.waitForFunction(() => ShoreQA.state().settingsGroup === 'hdmiport');
+    await act('hdmi.set.none');
+    check('Not shown removes the device from Home and from saved inputs', !(await stored()).dock.includes('hdmi2') && !('2' in (await stored()).inputs) && !(await state()).recent.includes('hdmi2'));
   });
   await run('Physical-key repeats and Back hierarchy', async () => {
     await page(); await editor(); await remove('netflix');

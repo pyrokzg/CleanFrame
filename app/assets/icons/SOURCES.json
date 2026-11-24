@@ -11,5 +11,12 @@
   "art": "CleanFrame original utility outline, 24px grid / 1.6px stroke",
   "apps": "CleanFrame original utility outline, 24px grid / 1.6px stroke",
   "settings": "CleanFrame original utility outline, 24px grid / 1.6px stroke",
-  "home": "CleanFrame original utility outline, 24px grid / 1.6px stroke"
+  "home": "CleanFrame original utility outline, 24px grid / 1.6px stroke",
+  "xbox": "https://raw.githubusercontent.com/simple-icons/simple-icons/11.15.0/icons/xbox.svg (CC0; shape unchanged, white fill)",
+  "playstation": "https://raw.githubusercontent.com/simple-icons/simple-icons/11.15.0/icons/playstation.svg (CC0; shape unchanged, white fill)",
+  "nintendo": "https://raw.githubusercontent.com/simple-icons/simple-icons/11.15.0/icons/nintendoswitch.svg (CC0; Nintendo Switch mark used for the Nintendo input, white fill)",
+  "amp": "CleanFrame original HDMI device outline, 24px grid / 1.6px stroke",
+  "pc": "CleanFrame original HDMI device outline, 24px grid / 1.6px stroke",
+  "mediabox": "CleanFrame original HDMI device outline, 24px grid / 1.6px stroke",
+  "hdmi": "CleanFrame original HDMI device outline, 24px grid / 1.6px stroke"
 }

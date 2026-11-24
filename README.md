@@ -2,7 +2,9 @@
 
 A quieter home screen for Samsung The Frame. Your apps, a photograph and the time, with an interface made for the TV remote.
 
-> **About this fork:** it adds [`startup-watcher/`](startup-watcher/), a small Linux service that opens CleanFrame each time the TV turns on without changing any TV settings. [FORK.md](FORK.md) lists the changes and explains how the watcher works. Everything else follows [upstream CleanFrame](https://github.com/nthnclrk/CleanFrame).
+> **About this fork:** an adaptation of [upstream CleanFrame](https://github.com/nthnclrk/CleanFrame) 0.7.0 for a 2020 Samsung QLED Q95T (Tizen 5.5). It adds **HDMI devices on Home** (Xbox, PlayStation, Nintendo, Amp, PC, Media box or Other device per port, with OK switching straight to that input). It removes **Art Mode**, which this TV ignores. And it adds a **[startup watcher](scripts/startup-watcher/)** that opens CleanFrame whenever the TV turns on without changing TV settings. See [FORK.md](FORK.md) for the full scope, design and test notes. The rest of this README is upstream's.
+>
+> ![CleanFrame Dock on the Q95T with Prime Video, Xbox, a media box and PlayStation](docs/images/cleanframe-q95t-dock.jpg)
 
 ![CleanFrame browser preview using the bundled Manrope font](docs/images/cleanframe-dock.jpg)
 

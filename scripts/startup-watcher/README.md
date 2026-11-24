@@ -8,10 +8,10 @@ It changes no TV settings. It polls the TV's local REST API (`http://TV:8001/api
 
 ## Install as a systemd service (Ubuntu, Debian, Raspberry Pi OS)
 
-Copy this folder to the machine (keep the files together), turn the TV on, then:
+Put the repository, or just this folder with its files together, on the always-on machine. Turn the TV on, then run the installer from this folder:
 
 ```sh
-cd startup-watcher
+cd CleanFrame/scripts/startup-watcher
 sudo bash ./install.sh --tv TV_IP --app PACKAGE.CleanFrame
 ```
 
