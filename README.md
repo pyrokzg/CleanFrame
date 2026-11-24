@@ -2,6 +2,8 @@
 
 A quieter home screen for Samsung The Frame. Your apps, a photograph and the time, with an interface made for the TV remote.
 
+> **About this fork:** it adds [`startup-watcher/`](startup-watcher/), a small Linux service that opens CleanFrame each time the TV turns on without changing any TV settings. [FORK.md](FORK.md) lists the changes and explains how the watcher works. Everything else follows [upstream CleanFrame](https://github.com/nthnclrk/CleanFrame).
+
 ![CleanFrame browser preview using the bundled Manrope font](docs/images/cleanframe-dock.jpg)
 
 I built CleanFrame for one TV: my own Samsung The Frame, running Tizen. I'm sharing the code and setup notes as a starting point for other people to build on.

@@ -1,0 +1,36 @@
+[Unit]
+Description=Open CleanFrame whenever the Samsung TV turns on
+Documentation=file:///opt/cleanframe-watcher/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=cleanframe-watcher
+Group=cleanframe-watcher
+# CLEANFRAME_TV, CLEANFRAME_APP and CLEANFRAME_TOKEN_FILE; written by install.sh.
+EnvironmentFile=/etc/default/cleanframe-watcher
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/cleanframe-watcher/cleanframe_watcher.py
+Restart=always
+RestartSec=10
+
+# The token lives in /var/lib/cleanframe-watcher; nothing else needs to be writable.
+StateDirectory=cleanframe-watcher
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
